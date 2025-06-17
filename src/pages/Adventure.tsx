@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Map, Sword, Users, Trophy } from 'lucide-react';
+import { Map, Sword, Users, Trophy, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useCombat } from '../contexts/CombatContext';
 import { combatAPI } from '../lib/supabase';
 import { Monster } from '../types';
@@ -8,6 +9,7 @@ import Card from '../components/UI/Card';
 import CombatScreen from '../components/Combat/CombatScreen';
 
 const Adventure: React.FC = () => {
+  const navigate = useNavigate();
   const { combatState, startCombat, isLoading } = useCombat();
   const [monsters, setMonsters] = useState<Monster[]>([]);
   const [loadingMonsters, setLoadingMonsters] = useState(true);
@@ -25,6 +27,10 @@ const Adventure: React.FC = () => {
     } finally {
       setLoadingMonsters(false);
     }
+  };
+
+  const handleEnterZone = () => {
+    navigate('/combat');
   };
 
   const handleStartRandomCombat = async () => {
@@ -51,49 +57,87 @@ const Adventure: React.FC = () => {
       </div>
 
       {/* World Map Section */}
-      <Card className="p-8">
+      <div className="space-y-6">
         <div className="text-center">
-          <Map className="w-16 h-16 text-primary-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">The Realm of Productivity</h2>
-          <p className="text-gray-600 mb-6">
-            A mystical world where your real-life achievements unlock new territories and adventures.
+          <Map className="w-12 h-12 text-primary-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">World Map</h2>
+          <p className="text-gray-600">
+            Choose your destination and embark on epic adventures
           </p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-            <div className="p-6 bg-green-50 rounded-lg">
-              <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                🌲
-              </div>
-              <h3 className="font-semibold text-green-800">The Mindful Forest</h3>
-              <p className="text-sm text-green-600 mt-2">
-                A peaceful realm where meditation and mindfulness quests await.
-              </p>
-            </div>
+        </div>
+
+        {/* Grassy Plains Zone */}
+        <Card className="relative overflow-hidden group hover:shadow-xl transition-all duration-300">
+          <div 
+            className="h-64 bg-cover bg-center relative"
+            style={{
+              backgroundImage: 'url(https://images.pexels.com/photos/1072179/pexels-photo-1072179.jpeg?auto=compress&cs=tinysrgb&w=1200)',
+            }}
+          >
+            {/* Overlay for better text readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
             
-            <div className="p-6 bg-blue-50 rounded-lg">
-              <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                🏔️
+            {/* Zone Content */}
+            <div className="absolute inset-0 flex flex-col justify-end p-8">
+              <div className="text-white mb-4">
+                <h3 className="text-3xl font-bold mb-2">Grassy Plains</h3>
+                <p className="text-lg opacity-90 mb-1">Recommended Level: 1-5</p>
+                <p className="text-sm opacity-75">
+                  A peaceful meadow where new adventurers begin their journey. Home to gentle creatures and hidden treasures.
+                </p>
               </div>
-              <h3 className="font-semibold text-blue-800">The Fitness Plains</h3>
-              <p className="text-sm text-blue-600 mt-2">
-                Wide open spaces perfect for physical challenges and training.
-              </p>
-            </div>
-            
-            <div className="p-6 bg-purple-50 rounded-lg">
-              <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                📚
-              </div>
-              <h3 className="font-semibold text-purple-800">The Learning Library</h3>
-              <p className="text-sm text-purple-600 mt-2">
-                Ancient halls filled with knowledge and skill-building opportunities.
-              </p>
+              
+              <Button
+                onClick={handleEnterZone}
+                variant="gold"
+                size="lg"
+                className="self-start group-hover:scale-105 transition-transform duration-200 flex items-center"
+              >
+                Enter and Explore
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
             </div>
           </div>
-        </div>
-      </Card>
+        </Card>
 
-      {/* Combat Section */}
+        {/* Coming Soon Zones Preview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Card className="p-6 bg-gray-50 border-dashed border-2 border-gray-300">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                🏔️
+              </div>
+              <h3 className="font-semibold text-gray-600 mb-2">Mystic Mountains</h3>
+              <p className="text-sm text-gray-500 mb-4">Level 6-10 • Coming Soon</p>
+              <div className="text-xs text-gray-400">Unlock by reaching Level 6</div>
+            </div>
+          </Card>
+
+          <Card className="p-6 bg-gray-50 border-dashed border-2 border-gray-300">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                🌲
+              </div>
+              <h3 className="font-semibold text-gray-600 mb-2">Enchanted Forest</h3>
+              <p className="text-sm text-gray-500 mb-4">Level 11-15 • Coming Soon</p>
+              <div className="text-xs text-gray-400">Unlock by completing Mystic Mountains</div>
+            </div>
+          </Card>
+
+          <Card className="p-6 bg-gray-50 border-dashed border-2 border-gray-300">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                🏰
+              </div>
+              <h3 className="font-semibold text-gray-600 mb-2">Shadow Citadel</h3>
+              <p className="text-sm text-gray-500 mb-4">Level 16+ • Coming Soon</p>
+              <div className="text-xs text-gray-400">The ultimate challenge awaits</div>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Quick Combat Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card className="p-6">
           <div className="flex items-center mb-4">

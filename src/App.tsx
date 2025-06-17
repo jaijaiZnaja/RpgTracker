@@ -13,6 +13,7 @@ import Quests from './pages/Quests';
 import Inventory from './pages/Inventory';
 import Profile from './pages/Profile';
 import Adventure from './pages/Adventure';
+import Combat from './pages/Combat';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();
@@ -93,6 +94,7 @@ const AppContent: React.FC = () => {
           <Route path="shop" element={<div className="p-8 text-center"><h1 className="text-2xl">Shop Coming Soon!</h1></div>} />
           <Route path="profile" element={<Profile />} />
           <Route path="adventure" element={<Adventure />} />
+          <Route path="combat" element={<Combat />} />
         </Route>
 
         {/* Fallback */}
