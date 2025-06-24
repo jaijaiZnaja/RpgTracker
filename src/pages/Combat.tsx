@@ -18,6 +18,7 @@ const Combat: React.FC = () => {
   const [menuState, setMenuState] = useState<'main' | 'skills'>('main');
   const [playerSkills, setPlayerSkills] = useState<Skill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isBattleOver, setIsBattleOver] = useState(false);
 
   useEffect(() => {
     initializeCombat();
@@ -62,80 +63,85 @@ const Combat: React.FC = () => {
     setCombatLog(prev => [...prev, message].slice(-10)); // Keep last 10 messages
   };
 
-  const handleAttack = () => {
-    if (!currentMonster || !user) return;
+  const handleBattleClick = () => {
+    setMenuState('skills');
+  };
 
-    // Calculate player attack damage
-    const playerAttack = 10 + (user.character.stats.strength * 2);
-    const damage = Math.max(1, playerAttack - currentMonster.defense);
-    
-    const newMonsterHP = Math.max(0, monsterHP - damage);
-    setMonsterHP(newMonsterHP);
-    addToCombatLog(`You attack ${currentMonster.name} for ${damage} damage!`);
+  const handleBackClick = () => {
+    setMenuState('main');
+  };
 
-    if (newMonsterHP <= 0) {
-      addToCombatLog(`${currentMonster.name} is defeated!`);
-      addToCombatLog(`You gained ${currentMonster.exp_reward} EXP and ${currentMonster.gold_reward} Gold!`);
-      return;
-    }
+  const handleBagClick = () => {
+    console.log('BAG clicked');
+    setMenuState('main');
+  };
 
-    // Monster counter-attack
+  const handleRunClick = () => {
+    console.log('RUN clicked');
+    addToCombatLog('You fled from battle!');
     setTimeout(() => {
-      monsterAttack();
-    }, 1000);
+      navigate('/adventure');
+    }, 1500);
   };
 
   const handleSkillUse = (skill: Skill) => {
-    if (!currentMonster || !user || playerMP < skill.mana_cost) return;
+    if (!currentMonster || !user || playerMP < skill.mana_cost || isBattleOver) return;
 
-    // Calculate skill damage
+    // Calculate skill damage based on character class and stats
     let skillDamage = skill.damage;
     if (skill.required_class === 'Wizard') {
       skillDamage += user.character.stats.intelligence * 2;
     } else if (skill.required_class === 'Fighter') {
       skillDamage += user.character.stats.strength * 1.5;
+    } else if (skill.required_class === 'Ranger') {
+      skillDamage += user.character.stats.dexterity * 1.5;
     }
 
     const damage = Math.max(1, Math.floor(skillDamage - currentMonster.defense / 2));
     const newMonsterHP = Math.max(0, monsterHP - damage);
     const newPlayerMP = playerMP - skill.mana_cost;
 
+    // Update monster HP and player MP
     setMonsterHP(newMonsterHP);
     setPlayerMP(newPlayerMP);
-    addToCombatLog(`You cast ${skill.name} for ${damage} damage!`);
-    setMenuState('main');
+    addToCombatLog(`You use ${skill.name}! ${currentMonster.name} takes ${damage} damage.`);
 
+    // Check if monster is defeated
     if (newMonsterHP <= 0) {
       addToCombatLog(`${currentMonster.name} is defeated!`);
       addToCombatLog(`You gained ${currentMonster.exp_reward} EXP and ${currentMonster.gold_reward} Gold!`);
+      setIsBattleOver(true);
       return;
     }
 
-    // Monster counter-attack
+    // Trigger monster's turn after a short delay
     setTimeout(() => {
-      monsterAttack();
+      monsterTurn();
     }, 1000);
   };
 
-  const monsterAttack = () => {
-    if (!currentMonster || !user) return;
+  const monsterTurn = () => {
+    if (!currentMonster || !user || isBattleOver) return;
 
-    const damage = Math.max(1, currentMonster.attack - (5 + user.character.stats.dexterity));
+    // Calculate monster damage (monster attack - player defense)
+    const playerDefense = 5 + user.character.stats.dexterity; // Base defense + dexterity
+    const damage = Math.max(1, currentMonster.attack - playerDefense);
     const newPlayerHP = Math.max(0, playerHP - damage);
-    
-    setPlayerHP(newPlayerHP);
-    addToCombatLog(`${currentMonster.name} attacks you for ${damage} damage!`);
 
+    setPlayerHP(newPlayerHP);
+    addToCombatLog(`${currentMonster.name} attacks! You take ${damage} damage.`);
+
+    // Check if player is defeated
     if (newPlayerHP <= 0) {
       addToCombatLog('You have been defeated!');
+      setIsBattleOver(true);
+      return;
     }
-  };
 
-  const handleRun = () => {
-    addToCombatLog('You fled from battle!');
+    // Return to main menu for player's next turn
     setTimeout(() => {
-      navigate('/adventure');
-    }, 1500);
+      setMenuState('main');
+    }, 1000);
   };
 
   const handleGoBack = () => {
@@ -165,10 +171,6 @@ const Combat: React.FC = () => {
       </div>
     );
   }
-
-  const isPlayerDefeated = playerHP <= 0;
-  const isMonsterDefeated = monsterHP <= 0;
-  const isBattleOver = isPlayerDefeated || isMonsterDefeated;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-100 via-blue-50 to-green-100 p-4">
@@ -293,14 +295,14 @@ const Combat: React.FC = () => {
                 
                 {isBattleOver ? (
                   <div className="text-center">
-                    {isPlayerDefeated && (
+                    {playerHP <= 0 && (
                       <div className="text-red-600 mb-4">
                         <Heart className="w-12 h-12 mx-auto mb-2" />
                         <p className="text-lg font-bold">Defeat!</p>
                         <p className="text-sm">You have been defeated...</p>
                       </div>
                     )}
-                    {isMonsterDefeated && (
+                    {monsterHP <= 0 && (
                       <div className="text-green-600 mb-4">
                         <Sword className="w-12 h-12 mx-auto mb-2" />
                         <p className="text-lg font-bold">Victory!</p>
@@ -314,7 +316,7 @@ const Combat: React.FC = () => {
                 ) : menuState === 'main' ? (
                   <div className="grid grid-cols-1 gap-3">
                     <Button
-                      onClick={handleAttack}
+                      onClick={handleBattleClick}
                       variant="danger"
                       size="lg"
                       className="w-full flex items-center justify-center"
@@ -324,29 +326,17 @@ const Combat: React.FC = () => {
                     </Button>
                     
                     <Button
-                      onClick={() => setMenuState('skills')}
-                      variant="mystical"
-                      size="lg"
-                      className="w-full flex items-center justify-center"
-                      disabled={playerSkills.length === 0}
-                    >
-                      <Zap className="w-5 h-5 mr-2" />
-                      SKILLS ({playerSkills.length})
-                    </Button>
-                    
-                    <Button
-                      onClick={() => {/* TODO: Implement bag */}}
+                      onClick={handleBagClick}
                       variant="secondary"
                       size="lg"
                       className="w-full flex items-center justify-center"
-                      disabled
                     >
                       <Package className="w-5 h-5 mr-2" />
                       BAG
                     </Button>
                     
                     <Button
-                      onClick={handleRun}
+                      onClick={handleRunClick}
                       variant="secondary"
                       size="lg"
                       className="w-full flex items-center justify-center"
@@ -375,8 +365,15 @@ const Combat: React.FC = () => {
                       ))}
                     </div>
                     
+                    {playerSkills.length === 0 && (
+                      <div className="text-center text-gray-500 py-4">
+                        <p className="text-sm">No skills unlocked yet!</p>
+                        <p className="text-xs">Complete quests to unlock skills.</p>
+                      </div>
+                    )}
+                    
                     <Button
-                      onClick={() => setMenuState('main')}
+                      onClick={handleBackClick}
                       variant="secondary"
                       size="lg"
                       className="w-full flex items-center justify-center"
