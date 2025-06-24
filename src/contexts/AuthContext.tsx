@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '../types';
+import { User as SupabaseUser } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
+import { User, Character } from '../types';
 
 interface AuthContextType {
   user: User | null;
@@ -29,58 +31,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('lifequest_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        loadUserProfile(session.user);
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        await loadUserProfile(session.user);
+      } else {
+        setUser(null);
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const loadUserProfile = async (supabaseUser: SupabaseUser) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // For demo purposes, create a user or use existing one
-      let userData = localStorage.getItem(`user_${email}`);
-      if (!userData) {
-        return false; // User doesn't exist
+      // Check if user profile exists
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', supabaseUser.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
       }
 
-      const parsedUser = JSON.parse(userData);
-      if (parsedUser.password !== password) {
-        return false; // Wrong password
-      }
-
-      const { password: _, ...userWithoutPassword } = parsedUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('lifequest_user', JSON.stringify(userWithoutPassword));
-      return true;
-    } catch (error) {
-      console.error('Login error:', error);
-      return false;
-    }
-  };
-
-  const register = async (email: string, password: string): Promise<boolean> => {
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Check if user already exists
-      const existingUser = localStorage.getItem(`user_${email}`);
-      if (existingUser) {
-        return false; // User already exists
-      }
-
-      const newUser: User & { password: string } = {
-        id: Math.random().toString(36).substr(2, 9),
-        email,
-        password,
-        displayName: email.split('@')[0],
-        registrationDate: new Date().toISOString(),
-        character: {
-          id: Math.random().toString(36).substr(2, 9),
+      if (!profile) {
+        // Create default profile for new user
+        const defaultCharacter: Character = {
+          id: crypto.randomUUID(),
           name: '',
           level: 1,
           experience: 0,
@@ -105,17 +94,76 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           },
           gold: 100,
           skillPoints: 0,
-        },
-      };
+        };
 
-      // Save user with password for authentication
-      localStorage.setItem(`user_${email}`, JSON.stringify(newUser));
-      
-      // Save user without password for app state
-      const { password: _, ...userWithoutPassword } = newUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('lifequest_user', JSON.stringify(userWithoutPassword));
-      
+        const newProfile = {
+          id: supabaseUser.id,
+          email: supabaseUser.email!,
+          display_name: supabaseUser.email!.split('@')[0],
+          character: defaultCharacter,
+          registration_date: new Date().toISOString(),
+        };
+
+        const { error: insertError } = await supabase
+          .from('user_profiles')
+          .insert(newProfile);
+
+        if (insertError) throw insertError;
+
+        setUser({
+          id: supabaseUser.id,
+          email: supabaseUser.email!,
+          displayName: newProfile.display_name,
+          character: defaultCharacter,
+          registrationDate: newProfile.registration_date,
+        });
+      } else {
+        setUser({
+          id: profile.id,
+          email: profile.email,
+          displayName: profile.display_name,
+          character: profile.character,
+          registrationDate: profile.registration_date,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('Login error:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    }
+  };
+
+  const register = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('Registration error:', error);
+        return false;
+      }
+
       return true;
     } catch (error) {
       console.error('Registration error:', error);
@@ -123,22 +171,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('lifequest_user');
   };
 
-  const updateUser = (userData: Partial<User>) => {
+  const updateUser = async (userData: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...userData };
       setUser(updatedUser);
-      localStorage.setItem('lifequest_user', JSON.stringify(updatedUser));
-      
-      // Also update the authenticated user data
-      const storedAuthUser = localStorage.getItem(`user_${user.email}`);
-      if (storedAuthUser) {
-        const authUser = JSON.parse(storedAuthUser);
-        localStorage.setItem(`user_${user.email}`, JSON.stringify({ ...authUser, ...userData }));
+
+      // Update in database
+      try {
+        const { error } = await supabase
+          .from('user_profiles')
+          .update({
+            display_name: updatedUser.displayName,
+            character: updatedUser.character,
+          })
+          .eq('id', user.id);
+
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error updating user profile:', error);
       }
     }
   };
