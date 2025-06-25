@@ -1,188 +1,321 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
-import CharacterPortrait from '../components/Character/CharacterPortrait';
-import QuestCard from '../components/Quest/QuestCard';
 import ProgressBar from '../components/UI/ProgressBar';
 import Card from '../components/UI/Card';
-import { Calendar, Trophy, Coins, Zap } from 'lucide-react';
+import Button from '../components/UI/Button';
+import { User, Settings, Trophy, Users, Plus, Minus } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const { user } = useAuth();
-  const { quests, completeQuest, deleteQuest } = useGame();
+  const { user, updateUser } = useAuth();
+  const { quests } = useGame();
+  const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'achievement' | 'friends'>('overview');
 
   if (!user) return null;
 
-  const activeDailies = quests.filter(q => q.type === 'daily' && q.isActive && !q.isCompleted);
-  const activeWeeklies = quests.filter(q => q.type === 'weekly' && q.isActive && !q.isCompleted);
-  const completedToday = quests.filter(q => {
-    if (!q.completedAt) return false;
-    const today = new Date().toDateString();
-    const completedDate = new Date(q.completedAt).toDateString();
-    return today === completedDate;
-  });
+  const handleStatIncrease = (stat: 'strength' | 'dexterity' | 'intelligence') => {
+    if (user.character.stats.availablePoints <= 0) return;
+
+    updateUser({
+      character: {
+        ...user.character,
+        stats: {
+          ...user.character.stats,
+          [stat]: user.character.stats[stat] + 1,
+          availablePoints: user.character.stats.availablePoints - 1,
+        },
+      },
+    });
+  };
+
+  const handleStatDecrease = (stat: 'strength' | 'dexterity' | 'intelligence') => {
+    if (user.character.stats[stat] <= 1) return;
+
+    updateUser({
+      character: {
+        ...user.character,
+        stats: {
+          ...user.character.stats,
+          [stat]: user.character.stats[stat] - 1,
+          availablePoints: user.character.stats.availablePoints + 1,
+        },
+      },
+    });
+  };
+
+  const handleResetStats = () => {
+    const totalPoints = user.character.stats.strength + user.character.stats.dexterity + user.character.stats.intelligence + user.character.stats.availablePoints;
+    const baseStats = 5; // Starting value for each stat
+    const availablePoints = totalPoints - (baseStats * 3);
+
+    updateUser({
+      character: {
+        ...user.character,
+        stats: {
+          strength: baseStats,
+          dexterity: baseStats,
+          intelligence: baseStats,
+          availablePoints: availablePoints,
+        },
+      },
+    });
+  };
+
+  const tabs = [
+    { key: 'overview', label: 'Overview', icon: User },
+    { key: 'settings', label: 'Settings', icon: Settings },
+    { key: 'achievement', label: 'Achievement', icon: Trophy },
+    { key: 'friends', label: 'Friends', icon: Users },
+  ];
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Welcome back, {user.character.name || 'Hero'}!
-          </h1>
-          <p className="text-gray-600 mt-1">Ready for another day of adventure?</p>
+    <div className="min-h-screen bg-gray-50 p-6">
+      {/* Tab Navigation */}
+      <div className="mb-8">
+        <div className="flex space-x-8 border-b-2 border-gray-900">
+          {tabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as any)}
+              className={`flex items-center py-3 px-1 font-bold text-lg transition-all ${
+                activeTab === tab.key
+                  ? 'text-gray-900 border-b-4 border-gray-900'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <tab.icon className="w-6 h-6 mr-2" />
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Character Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <Card className="lg:col-span-1 p-6">
-          <CharacterPortrait character={user.character} size="lg" showStats />
-        </Card>
-
-        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Stats Cards */}
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Vitals</h3>
-              <div className="flex space-x-2">
-                <div className="w-3 h-3 bg-health rounded-full"></div>
-                <div className="w-3 h-3 bg-mana rounded-full"></div>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">Health</span>
-                  <span className="font-medium">{user.character.vitals.currentHP}/{user.character.vitals.maxHP}</span>
-                </div>
-                <ProgressBar
-                  current={user.character.vitals.currentHP}
-                  max={user.character.vitals.maxHP}
-                  color="health"
-                  showText={false}
-                />
-              </div>
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">Mana</span>
-                  <span className="font-medium">{user.character.vitals.currentMP}/{user.character.vitals.maxMP}</span>
-                </div>
-                <ProgressBar
-                  current={user.character.vitals.currentMP}
-                  max={user.character.vitals.maxMP}
-                  color="mana"
-                  showText={false}
-                />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Experience</h3>
-              <Trophy className="w-5 h-5 text-gold-500" />
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Level {user.character.level}</span>
-                <span className="font-medium">{user.character.experience}/{user.character.experienceToNext}</span>
-              </div>
-              <ProgressBar
-                current={user.character.experience}
-                max={user.character.experienceToNext}
-                color="experience"
-                showText={false}
-              />
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Resources</h3>
-              <Coins className="w-5 h-5 text-gold-500" />
-            </div>
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column - Equipment Slots */}
+        <div className="space-y-4">
+          <Card className="p-6 border-2 border-gray-300">
             <div className="grid grid-cols-2 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gold-600">{user.character.gold}</div>
-                <div className="text-sm text-gray-600">Gold</div>
+              {/* Equipment Slots */}
+              <div className="space-y-3">
+                <div className="w-16 h-16 border-2 border-gray-300 rounded-lg flex items-center justify-center bg-gray-100">
+                  <span className="text-2xl">👑</span>
+                </div>
+                <div className="w-16 h-16 border-2 border-gray-300 rounded-lg flex items-center justify-center bg-gray-100">
+                  <span className="text-2xl">🛡️</span>
+                </div>
+                <div className="w-16 h-16 border-2 border-gray-300 rounded-lg flex items-center justify-center bg-gray-100">
+                  <span className="text-2xl">🥾</span>
+                </div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-mystical-600">{user.character.skillPoints}</div>
-                <div className="text-sm text-gray-600">Skill Points</div>
+              <div className="space-y-3">
+                <div className="w-16 h-16 border-2 border-gray-300 rounded-lg flex items-center justify-center bg-gray-100">
+                  <span className="text-2xl">⚔️</span>
+                </div>
+                <div className="w-16 h-16 border-2 border-gray-300 rounded-lg flex items-center justify-center bg-gray-100">
+                  <span className="text-2xl">🪄</span>
+                </div>
+                <div className="w-16 h-16 border-2 border-gray-300 rounded-lg flex items-center justify-center bg-gray-100">
+                  <span className="text-2xl">💍</span>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Center Column - Character Info */}
+        <div className="space-y-6">
+          <Card className="p-8 border-2 border-gray-300 text-center">
+            {/* Character Avatar */}
+            <div className="w-32 h-32 mx-auto mb-6 bg-gray-200 rounded-full flex items-center justify-center border-4 border-gray-400">
+              <User className="w-16 h-16 text-gray-600" />
+            </div>
+
+            {/* Character Name */}
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              {user.character.name || 'NAME'}
+            </h2>
+
+            {/* Level Badge */}
+            <div className="inline-flex items-center bg-gray-900 text-white px-4 py-2 rounded-full mb-6">
+              <span className="w-6 h-6 bg-white text-gray-900 rounded-full flex items-center justify-center text-sm font-bold mr-2">
+                {user.character.level}
+              </span>
+              <span className="font-bold">{user.character.class.toUpperCase()}</span>
+            </div>
+
+            {/* Base Stats */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-gray-100 p-4 rounded-lg border-2 border-gray-300">
+                <div className="text-sm font-bold text-gray-600 mb-1">STR</div>
+                <div className="text-2xl font-bold text-gray-900">{user.character.stats.strength}</div>
+              </div>
+              <div className="bg-gray-100 p-4 rounded-lg border-2 border-gray-300">
+                <div className="text-sm font-bold text-gray-600 mb-1">DEX</div>
+                <div className="text-2xl font-bold text-gray-900">{user.character.stats.dexterity}</div>
+              </div>
+              <div className="bg-gray-100 p-4 rounded-lg border-2 border-gray-300">
+                <div className="text-sm font-bold text-gray-600 mb-1">INT</div>
+                <div className="text-2xl font-bold text-gray-900">{user.character.stats.intelligence}</div>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Right Column - Stats & Account Info */}
+        <div className="space-y-6">
+          {/* Experience Bar */}
+          <Card className="p-6 border-2 border-gray-300">
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-bold text-gray-900">Next Lvl</span>
+                <span className="text-sm text-gray-600">
+                  {user.character.experience}/{user.character.experienceToNext}
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-6 border-2 border-gray-900">
+                <div 
+                  className="bg-gray-900 h-full rounded-full transition-all duration-500"
+                  style={{ 
+                    width: `${Math.min((user.character.experience / user.character.experienceToNext) * 100, 100)}%` 
+                  }}
+                >
+                  <div className="h-full flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">EXP</span>
+                  </div>
+                </div>
               </div>
             </div>
           </Card>
 
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Today's Progress</h3>
-              <Calendar className="w-5 h-5 text-primary-500" />
+          {/* Stats Management */}
+          <Card className="p-6 border-2 border-gray-300">
+            <h3 className="text-xl font-bold text-gray-900 mb-4 border-b-2 border-gray-900 pb-2">
+              STATS
+            </h3>
+            
+            <div className="space-y-4">
+              {/* Strength */}
+              <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg border border-gray-300">
+                <div className="flex items-center">
+                  <span className="text-lg font-bold text-gray-900 w-16">STR</span>
+                  <span className="text-xl font-bold text-gray-900 ml-4">
+                    {user.character.stats.strength}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handleStatDecrease('strength')}
+                    disabled={user.character.stats.strength <= 1}
+                    className="w-8 h-8 bg-gray-300 hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded flex items-center justify-center font-bold"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleStatIncrease('strength')}
+                    disabled={user.character.stats.availablePoints <= 0}
+                    className="w-8 h-8 bg-gray-300 hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded flex items-center justify-center font-bold"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Dexterity */}
+              <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg border border-gray-300">
+                <div className="flex items-center">
+                  <span className="text-lg font-bold text-gray-900 w-16">DEX</span>
+                  <span className="text-xl font-bold text-gray-900 ml-4">
+                    {user.character.stats.dexterity}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handleStatDecrease('dexterity')}
+                    disabled={user.character.stats.dexterity <= 1}
+                    className="w-8 h-8 bg-gray-300 hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded flex items-center justify-center font-bold"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleStatIncrease('dexterity')}
+                    disabled={user.character.stats.availablePoints <= 0}
+                    className="w-8 h-8 bg-gray-300 hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded flex items-center justify-center font-bold"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Intelligence */}
+              <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg border border-gray-300">
+                <div className="flex items-center">
+                  <span className="text-lg font-bold text-gray-900 w-16">INT</span>
+                  <span className="text-xl font-bold text-gray-900 ml-4">
+                    {user.character.stats.intelligence}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handleStatDecrease('intelligence')}
+                    disabled={user.character.stats.intelligence <= 1}
+                    className="w-8 h-8 bg-gray-300 hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded flex items-center justify-center font-bold"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleStatIncrease('intelligence')}
+                    disabled={user.character.stats.availablePoints <= 0}
+                    className="w-8 h-8 bg-gray-300 hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded flex items-center justify-center font-bold"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-experience">{completedToday.length}</div>
-              <div className="text-sm text-gray-600">Quests Completed</div>
+
+            {/* Free Points */}
+            <div className="mt-4 p-3 bg-gray-200 rounded-lg border border-gray-300">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-gray-900">Free Point</span>
+                <span className="text-xl font-bold text-gray-900">
+                  {user.character.stats.availablePoints}
+                </span>
+              </div>
+            </div>
+
+            {/* Reset Button */}
+            <div className="mt-4 flex justify-end">
+              <Button
+                onClick={handleResetStats}
+                variant="secondary"
+                size="sm"
+                className="text-gray-600 underline bg-transparent border-none shadow-none hover:bg-gray-100"
+              >
+                Reset
+              </Button>
             </div>
           </Card>
-        </div>
-      </div>
 
-      {/* Active Quests */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Today's Dailies */}
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">Today's Dailies</h2>
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <Calendar className="w-4 h-4" />
-              <span>{activeDailies.length} active</span>
+          {/* Account Info */}
+          <Card className="p-6 border-2 border-gray-300">
+            <div className="space-y-3 text-sm">
+              <div>
+                <span className="font-bold text-gray-900">Account: </span>
+                <span className="text-gray-700">{user.displayName}</span>
+              </div>
+              <div>
+                <span className="font-bold text-gray-900">Email: </span>
+                <span className="text-gray-700">{user.email}</span>
+              </div>
+              <div>
+                <span className="font-bold text-gray-900">Joined: </span>
+                <span className="text-gray-700">
+                  {new Date(user.registrationDate).toLocaleDateString('en-GB')}
+                </span>
+              </div>
             </div>
-          </div>
-          <div className="space-y-4">
-            {activeDailies.length === 0 ? (
-              <Card className="p-6 text-center">
-                <p className="text-gray-500 mb-4">No daily quests active</p>
-                <p className="text-sm text-gray-400">Visit the Quest Tracker to add some daily habits!</p>
-              </Card>
-            ) : (
-              activeDailies.slice(0, 3).map((quest) => (
-                <QuestCard
-                  key={quest.id}
-                  quest={quest}
-                  onComplete={completeQuest}
-                  onDelete={deleteQuest}
-                />
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Weekly Progress */}
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">Weekly Quests</h2>
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <Zap className="w-4 h-4" />
-              <span>{activeWeeklies.length} active</span>
-            </div>
-          </div>
-          <div className="space-y-4">
-            {activeWeeklies.length === 0 ? (
-              <Card className="p-6 text-center">
-                <p className="text-gray-500 mb-4">No weekly quests active</p>
-                <p className="text-sm text-gray-400">Set up some weekly goals to earn skill points!</p>
-              </Card>
-            ) : (
-              activeWeeklies.slice(0, 3).map((quest) => (
-                <QuestCard
-                  key={quest.id}
-                  quest={quest}
-                  onComplete={completeQuest}
-                  onDelete={deleteQuest}
-                />
-              ))
-            )}
-          </div>
+          </Card>
         </div>
       </div>
     </div>
