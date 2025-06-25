@@ -31,30 +31,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // ตั้งค่าเริ่มต้นให้ Loading
     setIsLoading(true);
+    console.log("AuthContext: useEffect triggered. Setting isLoading to true.");
 
-    // onAuthStateChange จะจัดการทั้ง session เริ่มต้น และการเปลี่ยนแปลงในอนาคต
-    // นี่คือแหล่งข้อมูลความจริงเพียงแหล่งเดียวสำหรับสถานะการยืนยันตัวตน
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`AuthContext: onAuthStateChange event: ${event}`);
+
       if (session?.user) {
-        // ถ้ามี session ของผู้ใช้ ให้โหลดข้อมูลโปรไฟล์
-        // loadUserProfile มี finally block ของตัวเองที่จะตั้ง isLoading เป็น false
+        console.log("AuthContext: Session found for user:", session.user.id);
         await loadUserProfile(session.user);
       } else {
-        // ถ้าไม่มี session ให้เคลียร์ข้อมูลผู้ใช้และหยุด loading
+        console.log("AuthContext: No session found. Setting user to null.");
         setUser(null);
         setIsLoading(false);
       }
     });
 
-    // Cleanup: ยกเลิกการ subscribe เมื่อ component ถูก unmount
     return () => {
+      console.log("AuthContext: Unsubscribing from onAuthStateChange.");
       subscription.unsubscribe();
     };
-  }, []); // dependency array ที่ว่างเปล่าทำให้โค้ดนี้ทำงานครั้งเดียวตอน mount
+  }, []);
 
   const loadUserProfile = async (supabaseUser: SupabaseUser) => {
+    console.log("loadUserProfile: Starting to load profile for user:", supabaseUser.id);
     try {
       // Check if user profile exists
       const { data: profile, error } = await supabase
@@ -128,8 +128,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
       }
     } catch (error) {
-      console.error('Error loading user profile:', error);
+      console.error('loadUserProfile: Error loading user profile:', error);
     } finally {
+      console.log("loadUserProfile: Finished. Setting isLoading to false.");
       setIsLoading(false);
     }
   };
