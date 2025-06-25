@@ -7,7 +7,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    // สั่งไม่ให้ Supabase บันทึก session ลงใน storage ของเบราว์เซอร์
+    persistSession: false,
+  },
+});
 
 // Database helper functions for combat system
 export const combatAPI = {
