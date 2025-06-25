@@ -31,27 +31,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        loadUserProfile(session.user);
-      } else {
-        setIsLoading(false);
-      }
-    });
+    // ตั้งค่าเริ่มต้นให้ Loading
+    setIsLoading(true);
 
-    // Listen for auth changes
+    // onAuthStateChange จะจัดการทั้ง session เริ่มต้น และการเปลี่ยนแปลงในอนาคต
+    // นี่คือแหล่งข้อมูลความจริงเพียงแหล่งเดียวสำหรับสถานะการยืนยันตัวตน
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
+        // ถ้ามี session ของผู้ใช้ ให้โหลดข้อมูลโปรไฟล์
+        // loadUserProfile มี finally block ของตัวเองที่จะตั้ง isLoading เป็น false
         await loadUserProfile(session.user);
       } else {
+        // ถ้าไม่มี session ให้เคลียร์ข้อมูลผู้ใช้และหยุด loading
         setUser(null);
         setIsLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    // Cleanup: ยกเลิกการ subscribe เมื่อ component ถูก unmount
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []); // dependency array ที่ว่างเปล่าทำให้โค้ดนี้ทำงานครั้งเดียวตอน mount
 
   const loadUserProfile = async (supabaseUser: SupabaseUser) => {
     try {
