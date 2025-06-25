@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { User, Settings, Trophy, Users } from 'lucide-react';
+import { User, Settings, Trophy, Users, Info, Plus, RotateCcw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
-import CharacterPortrait from '../components/Character/CharacterPortrait';
-import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import Modal from '../components/UI/Modal';
 
@@ -30,38 +28,76 @@ const Profile: React.FC = () => {
     setIsSettingsModalOpen(false);
   };
 
+  const handleStatIncrease = (stat: 'strength' | 'dexterity' | 'intelligence') => {
+    if (user.character.stats.availablePoints <= 0) return;
+
+    updateUser({
+      character: {
+        ...user.character,
+        stats: {
+          ...user.character.stats,
+          [stat]: user.character.stats[stat] + 1,
+          availablePoints: user.character.stats.availablePoints - 1,
+        },
+      },
+    });
+  };
+
+  const handleStatReset = () => {
+    const totalAllocated = (user.character.stats.strength - 5) + 
+                          (user.character.stats.dexterity - 5) + 
+                          (user.character.stats.intelligence - 5);
+    
+    updateUser({
+      character: {
+        ...user.character,
+        stats: {
+          strength: 5,
+          dexterity: 5,
+          intelligence: 5,
+          availablePoints: user.character.stats.availablePoints + totalAllocated,
+        },
+      },
+    });
+  };
+
   const tabs = [
     { key: 'overview', label: 'Overview', icon: User },
-    { key: 'settings', label: 'Settings', icon: Settings },
-    { key: 'achievements', label: 'Achievements', icon: Trophy },
+    { key: 'settings', label: 'Setting', icon: Settings },
+    { key: 'achievements', label: 'Achievement', icon: Trophy },
     { key: 'friends', label: 'Friends', icon: Users },
   ];
 
-  return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-          <p className="text-gray-600 mt-1">Manage your character and account settings</p>
-        </div>
-      </div>
+  const equipmentSlots = {
+    left: [
+      { type: 'helmet', icon: '🪖', name: 'Head' },
+      { type: 'armor', icon: '🛡️', name: 'Chest' },
+      { type: 'boots', icon: '🥾', name: 'Legs/Feet' },
+    ],
+    right: [
+      { type: 'weapon', icon: '⚔️', name: 'Weapon' },
+      { type: 'accessory', icon: '🎒', name: 'Accessory' },
+      { type: 'ring', icon: '💍', name: 'Ring' },
+    ],
+  };
 
-      {/* Tab Navigation */}
-      <div className="border-b border-gray-200">
-        <nav className="flex space-x-8">
+  return (
+    <div className="min-h-screen bg-white p-6">
+      {/* Top Navigation Bar */}
+      <div className="border-b-4 border-black mb-8">
+        <nav className="flex space-x-12 pb-4">
           {tabs.map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as any)}
-              className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`flex items-center space-x-2 text-lg font-bold ${
                 activeTab === tab.key
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'text-black border-b-4 border-black pb-2'
+                  : 'text-gray-600 hover:text-black'
               }`}
             >
-              <tab.icon className="w-5 h-5 mr-2" />
-              {tab.label}
+              <tab.icon className="w-6 h-6" />
+              <span>{tab.label}</span>
             </button>
           ))}
         </nav>
@@ -69,119 +105,243 @@ const Profile: React.FC = () => {
 
       {/* Tab Content */}
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <Card className="lg:col-span-1 p-6">
-            <CharacterPortrait character={user.character} size="lg" showStats />
-            <div className="mt-6 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Account:</span>
-                <span className="font-medium">{user.displayName}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Email:</span>
-                <span className="font-medium text-sm">{user.email}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Joined:</span>
-                <span className="font-medium text-sm">
-                  {new Date(user.registrationDate).toLocaleDateString()}
-                </span>
+        <div className="grid grid-cols-12 gap-8">
+          {/* Left Sidebar - Equipment Slots */}
+          <div className="col-span-2">
+            <div className="border-4 border-gray-400 rounded-lg p-4 bg-gray-50">
+              <div className="space-y-4">
+                {equipmentSlots.left.map((slot, index) => (
+                  <div
+                    key={index}
+                    className="w-16 h-16 border-2 border-black bg-white rounded flex items-center justify-center"
+                  >
+                    <span className="text-2xl opacity-30">{slot.icon}</span>
+                  </div>
+                ))}
               </div>
             </div>
-          </Card>
+          </div>
 
-          <div className="lg:col-span-2 space-y-6">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Character Stats</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-red-50 rounded-lg">
-                  <div className="text-2xl font-bold text-red-600">{user.character.stats.strength}</div>
-                  <div className="text-sm text-red-700">Strength</div>
-                </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">{user.character.stats.dexterity}</div>
-                  <div className="text-sm text-green-700">Dexterity</div>
-                </div>
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{user.character.stats.intelligence}</div>
-                  <div className="text-sm text-blue-700">Intelligence</div>
+          {/* Central Character Panel */}
+          <div className="col-span-4">
+            <div className="border-4 border-gray-400 rounded-lg p-6 bg-gray-50 text-center">
+              {/* Avatar */}
+              <div className="w-32 h-32 mx-auto mb-4 border-4 border-black rounded-full bg-white flex items-center justify-center">
+                <User className="w-16 h-16 text-gray-400" />
+              </div>
+
+              {/* Name */}
+              <div className="mb-4">
+                <div className="text-xl font-bold text-black">
+                  {user.character.name || 'NAME'}
                 </div>
               </div>
-              {user.character.stats.availablePoints > 0 && (
-                <div className="mt-4 p-3 bg-gold-50 rounded-lg">
-                  <p className="text-gold-800 font-medium">
-                    You have {user.character.stats.availablePoints} stat points to allocate!
-                  </p>
-                </div>
-              )}
-            </Card>
 
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Resources</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center justify-between p-3 bg-gold-50 rounded-lg">
-                  <span className="text-gold-700 font-medium">Gold</span>
-                  <span className="text-xl font-bold text-gold-600">{user.character.gold}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-mystical-50 rounded-lg">
-                  <span className="text-mystical-700 font-medium">Skill Points</span>
-                  <span className="text-xl font-bold text-mystical-600">{user.character.skillPoints}</span>
+              {/* Class/Title */}
+              <div className="mb-6">
+                <div className="inline-flex items-center space-x-2 bg-white border-2 border-black rounded-full px-4 py-2">
+                  <div className="w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-sm font-bold">
+                    {user.character.level}
+                  </div>
+                  <span className="font-bold text-black">{user.character.class.toUpperCase()}</span>
+                  <Info className="w-4 h-4 text-gray-600" />
                 </div>
               </div>
-            </Card>
+
+              {/* Base Stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white border-2 border-black rounded-lg p-3 text-center">
+                  <div className="text-xs font-bold text-black mb-1">STR</div>
+                  <div className="text-xl font-bold text-black">{user.character.stats.strength}</div>
+                </div>
+                <div className="bg-white border-2 border-black rounded-lg p-3 text-center">
+                  <div className="text-xs font-bold text-black mb-1">DEX</div>
+                  <div className="text-xl font-bold text-black">{user.character.stats.dexterity}</div>
+                </div>
+                <div className="bg-white border-2 border-black rounded-lg p-3 text-center">
+                  <div className="text-xs font-bold text-black mb-1">INT</div>
+                  <div className="text-xl font-bold text-black">{user.character.stats.intelligence}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Sidebar - Equipment Slots */}
+          <div className="col-span-2">
+            <div className="border-4 border-gray-400 rounded-lg p-4 bg-gray-50">
+              <div className="space-y-4">
+                {equipmentSlots.right.map((slot, index) => (
+                  <div
+                    key={index}
+                    className="w-16 h-16 border-2 border-black bg-white rounded flex items-center justify-center"
+                  >
+                    <span className="text-2xl opacity-30">{slot.icon}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Stats & Account */}
+          <div className="col-span-4 space-y-6">
+            {/* Experience Bar */}
+            <div>
+              <div className="text-lg font-bold text-black mb-2">
+                Next Lvl {user.character.experience}/{user.character.experienceToNext}
+              </div>
+              <div className="w-full bg-white border-4 border-black rounded-full h-8 overflow-hidden">
+                <div 
+                  className="h-full bg-black transition-all duration-500"
+                  style={{ 
+                    width: `${Math.min((user.character.experience / user.character.experienceToNext) * 100, 100)}%` 
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Detailed Stats */}
+            <div className="border-4 border-black rounded-lg p-4 bg-gray-50">
+              <div className="text-lg font-bold text-black mb-4 border-b-2 border-black pb-2">
+                STATS
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-16 h-12 bg-white border-2 border-black rounded flex items-center justify-center">
+                      <span className="text-lg font-bold">{user.character.stats.strength}</span>
+                    </div>
+                    <span className="font-bold text-black">Strength</span>
+                  </div>
+                  <button
+                    onClick={() => handleStatIncrease('strength')}
+                    disabled={user.character.stats.availablePoints <= 0}
+                    className="w-8 h-8 bg-white border-2 border-black rounded flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-16 h-12 bg-white border-2 border-black rounded flex items-center justify-center">
+                      <span className="text-lg font-bold">{user.character.stats.dexterity}</span>
+                    </div>
+                    <span className="font-bold text-black">Dexterity</span>
+                  </div>
+                  <button
+                    onClick={() => handleStatIncrease('dexterity')}
+                    disabled={user.character.stats.availablePoints <= 0}
+                    className="w-8 h-8 bg-white border-2 border-black rounded flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-16 h-12 bg-white border-2 border-black rounded flex items-center justify-center">
+                      <span className="text-lg font-bold">{user.character.stats.intelligence}</span>
+                    </div>
+                    <span className="font-bold text-black">Intelligence</span>
+                  </div>
+                  <button
+                    onClick={() => handleStatIncrease('intelligence')}
+                    disabled={user.character.stats.availablePoints <= 0}
+                    className="w-8 h-8 bg-white border-2 border-black rounded flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Free Points */}
+              <div className="mt-4 pt-4 border-t-2 border-black">
+                <div className="flex items-center justify-between">
+                  <div className="bg-white border-2 border-black rounded-lg px-4 py-2">
+                    <span className="font-bold text-black">Free Point: {user.character.stats.availablePoints}</span>
+                  </div>
+                  <button
+                    onClick={handleStatReset}
+                    className="bg-white border-2 border-black rounded px-4 py-2 font-bold text-black hover:bg-gray-100 flex items-center space-x-2"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Reset</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Account Information */}
+            <div className="space-y-2 text-lg">
+              <div className="font-bold text-black">
+                Account: {user.displayName}
+              </div>
+              <div className="font-bold text-black">
+                Email: {user.email}
+              </div>
+              <div className="font-bold text-black">
+                Joined: {new Date(user.registrationDate).toLocaleDateString('en-GB')}
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {activeTab === 'settings' && (
-        <Card className="p-6 max-w-2xl">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-800">Account Settings</h3>
-            <Button onClick={() => setIsSettingsModalOpen(true)}>
-              Edit Settings
-            </Button>
+        <div className="max-w-2xl mx-auto">
+          <div className="border-4 border-black rounded-lg p-6 bg-gray-50">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-black">Account Settings</h3>
+              <Button onClick={() => setIsSettingsModalOpen(true)}>
+                Edit Settings
+              </Button>
+            </div>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center py-3 border-b-2 border-black">
+                <span className="font-bold text-black">Display Name</span>
+                <span className="font-bold text-black">{user.displayName}</span>
+              </div>
+              <div className="flex justify-between items-center py-3 border-b-2 border-black">
+                <span className="font-bold text-black">Character Name</span>
+                <span className="font-bold text-black">{user.character.name || 'Unnamed Hero'}</span>
+              </div>
+              <div className="flex justify-between items-center py-3 border-b-2 border-black">
+                <span className="font-bold text-black">Email</span>
+                <span className="font-bold text-black">{user.email}</span>
+              </div>
+            </div>
           </div>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center py-3 border-b">
-              <span className="text-gray-600">Display Name</span>
-              <span className="font-medium">{user.displayName}</span>
-            </div>
-            <div className="flex justify-between items-center py-3 border-b">
-              <span className="text-gray-600">Character Name</span>
-              <span className="font-medium">{user.character.name || 'Unnamed Hero'}</span>
-            </div>
-            <div className="flex justify-between items-center py-3 border-b">
-              <span className="text-gray-600">Email</span>
-              <span className="font-medium">{user.email}</span>
-            </div>
-          </div>
-        </Card>
+        </div>
       )}
 
       {activeTab === 'achievements' && (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-6">Achievements</h3>
-          <div className="text-center py-12">
-            <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 mb-2">Achievement system coming soon!</p>
-            <p className="text-sm text-gray-400">
-              Complete quests and explore the world to unlock achievements.
-            </p>
+        <div className="max-w-4xl mx-auto">
+          <div className="border-4 border-black rounded-lg p-6 bg-gray-50">
+            <h3 className="text-xl font-bold text-black mb-6">Achievements</h3>
+            <div className="text-center py-12">
+              <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-black font-bold mb-2">Achievement system coming soon!</p>
+              <p className="text-gray-600">
+                Complete quests and explore the world to unlock achievements.
+              </p>
+            </div>
           </div>
-        </Card>
+        </div>
       )}
 
       {activeTab === 'friends' && (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-6">Friends</h3>
-          <div className="text-center py-12">
-            <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 mb-2">Friends system coming soon!</p>
-            <p className="text-sm text-gray-400">
-              Connect with other adventurers and share your progress.
-            </p>
+        <div className="max-w-4xl mx-auto">
+          <div className="border-4 border-black rounded-lg p-6 bg-gray-50">
+            <h3 className="text-xl font-bold text-black mb-6">Friends</h3>
+            <div className="text-center py-12">
+              <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-black font-bold mb-2">Friends system coming soon!</p>
+              <p className="text-gray-600">
+                Connect with other adventurers and share your progress.
+              </p>
+            </div>
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Settings Modal */}
