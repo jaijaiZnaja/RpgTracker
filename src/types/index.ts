@@ -97,7 +97,7 @@ export type QuestType = 'daily' | 'weekly' | 'main' | 'single';
 export type QuestDifficulty = 'easy' | 'medium' | 'hard' | 'epic';
 
 // New duration type for timer-based quests
-export type QuestDuration = '1h' | '2h' | '4h' | '8h' '12h' | '24h';
+export type QuestDuration = '1h' | '2h' | '4h' | '8h' | '12h' | '24h';
 
 // Duration configuration with rewards
 export const QUEST_DURATIONS: Record<QuestDuration, { 
