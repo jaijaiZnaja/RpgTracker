@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
-import { combatAPI } from '../lib/gameApi';
-import { supabase } from '../lib/supabaseClient';
+import { supabase, combatAPI } from '../lib/supabase';
 import { User, Character } from '../types';
 
 // 1. เพิ่ม gainExperience เข้าไปใน Context Type
