@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Heart, Zap, Sword, Package, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { combatAPI } from '../lib/supabase';
+import { combatAPI } from '../lib/gameApi';
 import { Monster, Skill } from '../types';
 import Button from '../components/UI/Button';
 import ProgressBar from '../components/UI/ProgressBar';
