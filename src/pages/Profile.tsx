@@ -7,7 +7,6 @@ import Modal from '../components/UI/Modal';
 
 const Profile: React.FC = () => {
   const { user, updateUser } = useAuth();
-  const { achievements, friends } = useGame();
   const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'achievements' | 'friends'>('overview');
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [settings, setSettings] = useState({
