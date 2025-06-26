@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Map, Sword, Users, Trophy, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCombat } from '../contexts/CombatContext';
-import { combatAPI } from '../lib/supabase';
+import { combatAPI } from '../lib/gameApi';
 import { Monster } from '../types';
 import Button from '../components/UI/Button';
 import Card from '../components/UI/Card';
