@@ -15,9 +15,6 @@ import Profile from './pages/Profile';
 import Adventure from './pages/Adventure';
 import Combat from './pages/Combat';
 
-// Import หน้าทดสอบของเรา
-import LoginTest from './pages/LoginTest';
-
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();
 
@@ -72,9 +69,6 @@ const AppContent: React.FC = () => {
             <Register />
           </PublicRoute>
         } />
-
-        {/* --- เพิ่ม Route สำหรับหน้าทดสอบตรงนี้ --- */}
-        <Route path="/logintest" element={<LoginTest />} />
 
         {/* Character Creation (Special Case) */}
         <Route path="/character-creation" element={
