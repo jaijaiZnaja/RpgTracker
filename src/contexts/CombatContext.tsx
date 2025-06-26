@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { Monster, Skill, CombatState, CombatAction, CombatActionPayload } from '../types';
 import { useAuth } from './AuthContext';
-import { combatAPI } from '../lib/gameApi';
+import { combatAPI } from '../lib/supabase';
 
 interface CombatContextType {
   combatState: CombatState | null;
