@@ -9,7 +9,7 @@ import ProgressBar from '../components/UI/ProgressBar';
 
 const Combat: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser, gainExperience } = useAuth();
   const [currentMonster, setCurrentMonster] = useState<Monster | null>(null);
   const [playerHP, setPlayerHP] = useState(100);
   const [playerMP, setPlayerMP] = useState(50);
@@ -19,11 +19,19 @@ const Combat: React.FC = () => {
   const [playerSkills, setPlayerSkills] = useState<Skill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isBattleOver, setIsBattleOver] = useState(false);
+  const [isPlayerTurn, setIsPlayerTurn] = useState(true);
 
   useEffect(() => {
     initializeCombat();
     loadPlayerSkills();
   }, []);
+
+  useEffect(() => {
+    if (user?.character) {
+      setPlayerHP(user.character.vitals.currentHP);
+      setPlayerMP(user.character.vitals.currentMP);
+    }
+  }, [user]);
 
   const initializeCombat = async () => {
     try {
@@ -31,13 +39,6 @@ const Combat: React.FC = () => {
       const monster = await combatAPI.getRandomMonster();
       setCurrentMonster(monster);
       setMonsterHP(monster.hp);
-      
-      // Initialize player stats from character
-      if (user?.character) {
-        setPlayerHP(user.character.vitals.currentHP);
-        setPlayerMP(user.character.vitals.currentMP);
-      }
-      
       addToCombatLog(`A wild ${monster.name} appears!`);
     } catch (error) {
       console.error('Failed to initialize combat:', error);
@@ -49,7 +50,6 @@ const Combat: React.FC = () => {
 
   const loadPlayerSkills = async () => {
     if (!user) return;
-    
     try {
       const unlockedSkills = await combatAPI.getPlayerUnlockedSkills(user.id);
       const skills = unlockedSkills.map(us => us.skill).filter(Boolean) as Skill[];
@@ -57,6 +57,24 @@ const Combat: React.FC = () => {
     } catch (error) {
       console.error('Failed to load player skills:', error);
     }
+  };
+
+  const handleVictory = async () => {
+    if (!user || !user.character || !currentMonster) return;
+
+    addToCombatLog(`${currentMonster.name} is defeated!`);
+    addToCombatLog(`You gained ${currentMonster.exp_reward} EXP and ${currentMonster.gold_reward} Gold!`);
+    setIsBattleOver(true);
+
+    // อัปเดตทองของผู้เล่น
+    const updatedCharacter = { 
+      ...user.character, 
+      gold: (user.character.gold || 0) + currentMonster.gold_reward 
+    };
+    await updateUser({ character: updatedCharacter });
+
+    // เรียกใช้ฟังก์ชันกลางเพื่อจัดการ EXP และการเลเวลอัป
+    await gainExperience(currentMonster.exp_reward);
   };
 
   const addToCombatLog = (message: string) => {
@@ -85,7 +103,10 @@ const Combat: React.FC = () => {
   };
 
   const handleSkillUse = (skill: Skill) => {
-    if (!currentMonster || !user || playerMP < skill.mana_cost || isBattleOver) return;
+    if (!isPlayerTurn || !currentMonster || !user || playerMP < skill.mana_cost || isBattleOver) return;
+
+    // 2. เมื่อผู้เล่นโจมตี ให้เปลี่ยนเป็นตาของมอนสเตอร์ทันที
+    setIsPlayerTurn(false);
 
     // Calculate skill damage based on character class and stats
     let skillDamage = skill.damage;
@@ -108,16 +129,13 @@ const Combat: React.FC = () => {
 
     // Check if monster is defeated
     if (newMonsterHP <= 0) {
-      addToCombatLog(`${currentMonster.name} is defeated!`);
-      addToCombatLog(`You gained ${currentMonster.exp_reward} EXP and ${currentMonster.gold_reward} Gold!`);
-      setIsBattleOver(true);
+      handleVictory()
       return;
     }
-
     // Trigger monster's turn after a short delay
     setTimeout(() => {
       monsterTurn();
-    }, 1000);
+    }, 10);
   };
 
   const monsterTurn = () => {
@@ -141,6 +159,7 @@ const Combat: React.FC = () => {
     // Return to main menu for player's next turn
     setTimeout(() => {
       setMenuState('main');
+      setIsPlayerTurn(true); // <--- คืนตาให้ผู้เล่น
     }, 1000);
   };
 
