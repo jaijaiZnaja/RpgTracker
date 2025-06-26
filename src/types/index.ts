@@ -42,6 +42,39 @@ export interface CharacterVitals {
 
 export type CharacterClass = 'Novice' | 'Fighter' | 'Ranger' | 'Wizard' | 'Adventurer';
 
+// Level-based vitals calculation
+export const getLevelVitals = (level: number): { maxHP: number; maxMP: number } => {
+  const vitalsTable: Record<number, { maxHP: number; maxMP: number }> = {
+    1: { maxHP: 100, maxMP: 50 },
+    2: { maxHP: 125, maxMP: 75 },
+    3: { maxHP: 150, maxMP: 100 },
+    4: { maxHP: 175, maxMP: 125 },
+    5: { maxHP: 200, maxMP: 150 },
+    6: { maxHP: 225, maxMP: 175 },
+    7: { maxHP: 250, maxMP: 200 },
+    8: { maxHP: 275, maxMP: 225 },
+    9: { maxHP: 300, maxMP: 250 },
+    10: { maxHP: 325, maxMP: 275 },
+    // Continue pattern: +25 HP, +25 MP per level
+  };
+
+  // If level is not in table, calculate using pattern
+  if (vitalsTable[level]) {
+    return vitalsTable[level];
+  }
+
+  // For levels beyond the table, use the pattern: base + (level-1) * increment
+  const baseHP = 100;
+  const baseMana = 50;
+  const hpIncrement = 25;
+  const manaIncrement = 25;
+
+  return {
+    maxHP: baseHP + (level - 1) * hpIncrement,
+    maxMP: baseMana + (level - 1) * manaIncrement,
+  };
+};
+
 export interface Quest {
   id: string;
   title: string;

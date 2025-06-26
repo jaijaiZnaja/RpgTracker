@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { Monster, Skill, CombatState, CombatAction, CombatActionPayload } from '../types';
+import { Monster, Skill, CombatState, CombatAction, CombatActionPayload, getLevelVitals } from '../types';
 import { useAuth } from './AuthContext';
 import { combatAPI } from '../lib/supabase';
 
@@ -170,6 +170,9 @@ export const CombatProvider: React.FC<CombatProviderProps> = ({ children }) => {
         newState.battleLog.push(`Level up! You are now level ${newLevel}!`);
       }
 
+      // Get new vitals for the level
+      const newVitals = getLevelVitals(newLevel);
+
       // Update user character
       updateUser({
         character: {
@@ -181,6 +184,14 @@ export const CombatProvider: React.FC<CombatProviderProps> = ({ children }) => {
           stats: {
             ...user.character.stats,
             availablePoints: newAvailablePoints,
+          },
+          vitals: {
+            ...user.character.vitals,
+            maxHP: newVitals.maxHP,
+            maxMP: newVitals.maxMP,
+            // Restore HP/MP on level up
+            currentHP: newLevel > user.character.level ? newVitals.maxHP : newState.player.hp,
+            currentMP: newLevel > user.character.level ? newVitals.maxMP : newState.player.mp,
           },
         },
       });

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Quest, Item, Achievement, Friend } from '../types';
+import { Quest, Item, Achievement, Friend, getLevelVitals } from '../types';
 import { useAuth } from './AuthContext';
 
 interface GameContextType {
@@ -118,6 +118,9 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       newAvailablePoints += 3; // 3 stat points per level
     }
 
+    // Get new vitals for the level
+    const newVitals = getLevelVitals(newLevel);
+
     // Update character
     updateUser({
       character: {
@@ -130,6 +133,14 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         stats: {
           ...user.character.stats,
           availablePoints: newAvailablePoints,
+        },
+        vitals: {
+          ...user.character.vitals,
+          maxHP: newVitals.maxHP,
+          maxMP: newVitals.maxMP,
+          // Restore HP/MP on level up
+          currentHP: newLevel > user.character.level ? newVitals.maxHP : user.character.vitals.currentHP,
+          currentMP: newLevel > user.character.level ? newVitals.maxMP : user.character.vitals.currentMP,
         },
       },
     });

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { User, Character } from '../types';
+import { User, Character, getLevelVitals } from '../types';
 
 interface AuthContextType {
   user: User | null;
@@ -69,6 +69,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (!profile) {
         // Create default profile for new user
+        const level1Vitals = getLevelVitals(1);
         const defaultCharacter: Character = {
           id: crypto.randomUUID(),
           name: '',
@@ -88,10 +89,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             availablePoints: 0,
           },
           vitals: {
-            currentHP: 100,
-            maxHP: 100,
-            currentMP: 50,
-            maxMP: 50,
+            currentHP: level1Vitals.maxHP,
+            maxHP: level1Vitals.maxHP,
+            currentMP: level1Vitals.maxMP,
+            maxMP: level1Vitals.maxMP,
           },
           gold: 100,
           skillPoints: 0,
@@ -181,6 +182,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const updateUser = async (userData: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...userData };
+      
+      // If character level changed, update vitals accordingly
+      if (userData.character?.level && userData.character.level !== user.character.level) {
+        const newVitals = getLevelVitals(userData.character.level);
+        updatedUser.character = {
+          ...updatedUser.character,
+          vitals: {
+            ...updatedUser.character.vitals,
+            maxHP: newVitals.maxHP,
+            maxMP: newVitals.maxMP,
+            // Keep current HP/MP proportional to new max values
+            currentHP: Math.min(updatedUser.character.vitals.currentHP, newVitals.maxHP),
+            currentMP: Math.min(updatedUser.character.vitals.currentMP, newVitals.maxMP),
+          },
+        };
+      }
+      
       setUser(updatedUser);
 
       // Update in database
