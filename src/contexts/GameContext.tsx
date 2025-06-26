@@ -126,7 +126,9 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     // Check for level up
     if (newExp >= user.character.experienceToNext) {
       newLevel++;
-      newExpToNext = newLevel * 100; // Simple formula
+      const growthFactor = 1.3; // ปรับตัวคูณนี้เพื่อเปลี่ยนความชัน
+    // คำนวณ EXP ที่ต้องการสำหรับเลเวล *ถัดไป* จาก EXP ปัจจุบัน
+      newExpToNext = Math.round(user.character.experienceToNext * growthFactor);
       newAvailablePoints += 3; // 3 stat points per level
     }
 
