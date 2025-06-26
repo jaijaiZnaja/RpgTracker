@@ -5,7 +5,7 @@ import QuestCard from '../components/Quest/QuestCard';
 import Button from '../components/UI/Button';
 import Modal from '../components/UI/Modal';
 import Card from '../components/UI/Card';
-import { Quest, QuestType, QuestDifficulty } from '../types';
+import { Quest, QuestType, QuestDuration, QUEST_DURATIONS } from '../types';
 
 const Quests: React.FC = () => {
   const { quests, addQuest, completeQuest, deleteQuest } = useGame();
@@ -15,7 +15,7 @@ const Quests: React.FC = () => {
     title: '',
     description: '',
     type: 'daily' as QuestType,
-    difficulty: 'medium' as QuestDifficulty,
+    duration: '2h' as QuestDuration,
     isActive: true,
   });
 
@@ -23,14 +23,17 @@ const Quests: React.FC = () => {
     e.preventDefault();
     if (!newQuest.title.trim()) return;
 
+    // Get rewards based on duration
+    const durationConfig = QUEST_DURATIONS[newQuest.duration];
     const rewards = {
-      experience: newQuest.difficulty === 'easy' ? 10 : newQuest.difficulty === 'medium' ? 25 : newQuest.difficulty === 'hard' ? 50 : 100,
-      gold: newQuest.difficulty === 'easy' ? 5 : newQuest.difficulty === 'medium' ? 15 : newQuest.difficulty === 'hard' ? 30 : 60,
+      experience: durationConfig.experience,
+      gold: durationConfig.gold,
       skillPoints: newQuest.type === 'weekly' ? 1 : undefined,
     };
 
     addQuest({
       ...newQuest,
+      difficulty: 'medium', // Default difficulty for compatibility
       rewards,
     });
 
@@ -38,10 +41,15 @@ const Quests: React.FC = () => {
       title: '',
       description: '',
       type: 'daily',
-      difficulty: 'medium',
+      duration: '2h',
       isActive: true,
     });
     setIsAddModalOpen(false);
+  };
+
+  const handleClaimReward = (questId: string) => {
+    // Handle claiming timer-based quest rewards
+    completeQuest(questId);
   };
 
   const filteredQuests = quests.filter(quest => {
@@ -113,6 +121,7 @@ const Quests: React.FC = () => {
                       quest={quest}
                       onComplete={completeQuest}
                       onDelete={deleteQuest}
+                      onClaimReward={handleClaimReward}
                     />
                   ))
                 )}
@@ -133,6 +142,7 @@ const Quests: React.FC = () => {
                 quest={quest}
                 onComplete={completeQuest}
                 onDelete={deleteQuest}
+                onClaimReward={handleClaimReward}
               />
             ))
           )}
@@ -192,18 +202,28 @@ const Quests: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Difficulty
+                Quest Duration
               </label>
               <select
-                value={newQuest.difficulty}
-                onChange={(e) => setNewQuest({ ...newQuest, difficulty: e.target.value as QuestDifficulty })}
+                value={newQuest.duration}
+                onChange={(e) => setNewQuest({ ...newQuest, duration: e.target.value as QuestDuration })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
-                <option value="easy">Easy (10 XP, 5 Gold)</option>
-                <option value="medium">Medium (25 XP, 15 Gold)</option>
-                <option value="hard">Hard (50 XP, 30 Gold)</option>
-                <option value="epic">Epic (100 XP, 60 Gold)</option>
+                {Object.entries(QUEST_DURATIONS).map(([key, config]) => (
+                  <option key={key} value={key}>
+                    {config.label} (Grants {config.experience} XP, {config.gold} Gold)
+                  </option>
+                ))}
               </select>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="font-medium text-blue-800 mb-2">Quest Rewards Preview</h4>
+            <div className="text-sm text-blue-700">
+              <p>• Experience: {QUEST_DURATIONS[newQuest.duration].experience} XP</p>
+              <p>• Gold: {QUEST_DURATIONS[newQuest.duration].gold} Gold</p>
+              {newQuest.type === 'weekly' && <p>• Skill Points: 1 SP</p>}
             </div>
           </div>
 

@@ -81,18 +81,38 @@ export interface Quest {
   description: string;
   type: QuestType;
   difficulty: QuestDifficulty;
+  duration?: QuestDuration; // New field for timer-based quests
   rewards: QuestRewards;
   isCompleted: boolean;
   isActive: boolean;
   createdAt: string;
   completedAt?: string;
   dueDate?: string;
+  startedAt?: string; // When the timer started
   progress?: number;
   maxProgress?: number;
 }
 
 export type QuestType = 'daily' | 'weekly' | 'main' | 'single';
 export type QuestDifficulty = 'easy' | 'medium' | 'hard' | 'epic';
+
+// New duration type for timer-based quests
+export type QuestDuration = '1h' | '2h' | '4h' | '8h' '12h' | '24h';
+
+// Duration configuration with rewards
+export const QUEST_DURATIONS: Record<QuestDuration, { 
+  label: string; 
+  hours: number; 
+  experience: number; 
+  gold: number; 
+}> = {
+  '1h': { label: '1 Hour', hours: 1, experience: 10, gold: 5 },
+  '2h': { label: '2 Hours', hours: 2, experience: 15, gold: 10 },
+  '4h': { label: '4 Hours', hours: 4, experience: 25, gold: 20 },
+  '8h': { label: '8 Hours', hours: 8, experience: 45, gold: 35 },
+  '12h': { label: '12 Hours', hours: 12, experience: 70, gold: 50 },
+  '24h': { label: '24 Hours', hours: 24, experience: 100, gold: 80 },
+};
 
 export interface QuestRewards {
   experience: number;
@@ -239,3 +259,28 @@ export interface CombatActionPayload {
   skillId?: string;
   itemId?: string;
 }
+
+// Utility functions for quest timers
+export const getQuestTimeRemaining = (quest: Quest): number => {
+  if (!quest.startedAt || !quest.duration) return 0;
+  
+  const startTime = new Date(quest.startedAt).getTime();
+  const durationMs = QUEST_DURATIONS[quest.duration].hours * 60 * 60 * 1000;
+  const endTime = startTime + durationMs;
+  const now = Date.now();
+  
+  return Math.max(0, endTime - now);
+};
+
+export const isQuestTimerExpired = (quest: Quest): boolean => {
+  return getQuestTimeRemaining(quest) === 0;
+};
+
+export const formatTimeRemaining = (milliseconds: number): string => {
+  const totalSeconds = Math.floor(milliseconds / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+};

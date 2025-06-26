@@ -94,6 +94,18 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     const quest = quests.find(q => q.id === questId);
     if (!quest || quest.isCompleted || !user) return;
 
+    // For timer-based quests, start the timer if not started
+    if (quest.duration && !quest.startedAt) {
+      const updatedQuests = quests.map(q =>
+        q.id === questId
+          ? { ...q, startedAt: new Date().toISOString() }
+          : q
+      );
+      setQuests(updatedQuests);
+      saveGameData({ quests: updatedQuests });
+      return;
+    }
+
     // Update quest as completed
     const updatedQuests = quests.map(q =>
       q.id === questId
