@@ -83,9 +83,7 @@ const Quests: React.FC = () => {
         {[
           { key: 'all', label: 'All Quests' },
           { key: 'daily', label: 'Dailies' },
-          { key: 'weekly', label: 'Weeklies' },
-          { key: 'main', label: 'Main Quests' },
-          { key: 'single', label: 'Single Tasks' },
+          
         ].map(filter => (
           <button
             key={filter.key}
