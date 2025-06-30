@@ -58,70 +58,7 @@ const Adventure: React.FC = () => {
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           
-          {/* Left Column (Sidebar for Actions) */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Random Encounter Card */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <div className="flex items-center mb-4">
-                <Sword className="w-6 h-6 text-red-500 mr-3" />
-                <h3 className="text-xl font-semibold text-gray-800">Random Encounter</h3>
-              </div>
-              <p className="text-gray-600 mb-6">
-                Face a random monster and test your combat skills. Perfect for quick battles and experience farming.
-              </p>
-              <Button
-                onClick={handleStartRandomCombat}
-                disabled={isLoading}
-                variant="danger"
-                className="w-full"
-              >
-                {isLoading ? 'Starting Combat...' : 'Start Random Battle'}
-              </Button>
-            </div>
-
-            {/* Monster Bestiary Card */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <div className="flex items-center mb-4">
-                <Trophy className="w-6 h-6 text-gold-500 mr-3" />
-                <h3 className="text-xl font-semibold text-gray-800">Monster Bestiary</h3>
-              </div>
-              <p className="text-gray-600 mb-6">
-                Choose specific monsters to battle and learn their attack patterns.
-              </p>
-              
-              {loadingMonsters ? (
-                <div className="text-center py-4">
-                  <div className="animate-spin w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full mx-auto"></div>
-                  <p className="text-sm text-gray-500 mt-2">Loading monsters...</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {monsters.map((monster) => (
-                    <div key={monster.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                          {monster.image_url ? (
-                            <img src={monster.image_url} alt={monster.name} className="w-8 h-8 rounded-full object-cover"/>
-                          ) : (
-                            <span className="text-lg">👹</span>
-                          )}
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-800 text-sm">{monster.name}</h4>
-                          <p className="text-xs text-gray-500">
-                            HP: {monster.hp} | ATK: {monster.attack}
-                          </p>
-                        </div>
-                      </div>
-                      <Button onClick={() => handleStartSpecificCombat(monster)} disabled={isLoading} size="sm" variant="primary">
-                        Battle
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          
 
           {/* Right Column (Main Content) */}
           <div className="lg:col-span-3 space-y-6">
