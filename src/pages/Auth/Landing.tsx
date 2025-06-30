@@ -17,8 +17,9 @@ const Landing: React.FC = () => {
           className="absolute top-4 right-4 z-10 transition-transform duration-300 hover:scale-110"
           aria-label="Powered by Bolt"
         >
+          {/* เปลี่ยน src ให้ชี้ไปที่ไฟล์ในโฟลเดอร์ public */}
           <img 
-            src="https://assets.bolt.com/made-in-bolt.png" 
+            src="/bolt-logo.png" 
             alt="Powered by Bolt" 
             className="w-14 h-14"
           />
