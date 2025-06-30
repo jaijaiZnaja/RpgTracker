@@ -19,6 +19,8 @@ const Combat: React.FC = () => {
   const [playerSkills, setPlayerSkills] = useState<Skill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isBattleOver, setIsBattleOver] = useState(false);
+  const [isPlayerTurn, setIsPlayerTurn] = useState(true);
+  const [isProcessingAction, setIsProcessingAction] = useState(false);
 
   useEffect(() => {
     initializeCombat();
@@ -39,6 +41,8 @@ const Combat: React.FC = () => {
       }
       
       addToCombatLog(`A wild ${monster.name} appears!`);
+      setIsPlayerTurn(true);
+      setIsProcessingAction(false);
     } catch (error) {
       console.error('Failed to initialize combat:', error);
       addToCombatLog('Failed to load monster. Please try again.');
@@ -64,28 +68,39 @@ const Combat: React.FC = () => {
   };
 
   const handleBattleClick = () => {
+    if (!isPlayerTurn || isProcessingAction || isBattleOver) return;
     setMenuState('skills');
   };
 
   const handleBackClick = () => {
+    if (!isPlayerTurn || isProcessingAction || isBattleOver) return;
     setMenuState('main');
   };
 
   const handleBagClick = () => {
+    if (!isPlayerTurn || isProcessingAction || isBattleOver) return;
     console.log('BAG clicked');
     setMenuState('main');
   };
 
   const handleRunClick = () => {
+    if (!isPlayerTurn || isProcessingAction || isBattleOver) return;
     console.log('RUN clicked');
     addToCombatLog('You fled from battle!');
+    setIsBattleOver(true);
     setTimeout(() => {
       navigate('/adventure');
     }, 1500);
   };
 
-  const handleSkillUse = (skill: Skill) => {
-    if (!currentMonster || !user || playerMP < skill.mana_cost || isBattleOver) return;
+  const handleSkillUse = async (skill: Skill) => {
+    if (!currentMonster || !user || playerMP < skill.mana_cost || isBattleOver || !isPlayerTurn || isProcessingAction) {
+      return;
+    }
+
+    // Prevent multiple clicks by setting processing state
+    setIsProcessingAction(true);
+    setIsPlayerTurn(false);
 
     // Calculate skill damage based on character class and stats
     let skillDamage = skill.damage;
@@ -106,11 +121,15 @@ const Combat: React.FC = () => {
     setPlayerMP(newPlayerMP);
     addToCombatLog(`You use ${skill.name}! ${currentMonster.name} takes ${damage} damage.`);
 
+    // Reset menu to main after using skill
+    setMenuState('main');
+
     // Check if monster is defeated
     if (newMonsterHP <= 0) {
       addToCombatLog(`${currentMonster.name} is defeated!`);
       addToCombatLog(`You gained ${currentMonster.exp_reward} EXP and ${currentMonster.gold_reward} Gold!`);
       setIsBattleOver(true);
+      setIsProcessingAction(false);
       return;
     }
 
@@ -135,12 +154,14 @@ const Combat: React.FC = () => {
     if (newPlayerHP <= 0) {
       addToCombatLog('You have been defeated!');
       setIsBattleOver(true);
+      setIsProcessingAction(false);
       return;
     }
 
-    // Return to main menu for player's next turn
+    // Return to player turn after monster attack
     setTimeout(() => {
-      setMenuState('main');
+      setIsPlayerTurn(true);
+      setIsProcessingAction(false);
     }, 1000);
   };
 
@@ -182,11 +203,25 @@ const Combat: React.FC = () => {
             variant="secondary"
             size="sm"
             className="mr-4"
+            disabled={isProcessingAction}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Flee Battle
           </Button>
           <h1 className="text-2xl font-bold text-gray-800">Combat - Grassy Plains</h1>
+          
+          {/* Turn Indicator */}
+          <div className="ml-auto">
+            {!isBattleOver && (
+              <div className={`px-4 py-2 rounded-lg font-bold ${
+                isPlayerTurn && !isProcessingAction 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-yellow-100 text-yellow-800'
+              }`}>
+                {isProcessingAction ? 'Processing...' : isPlayerTurn ? 'Your Turn' : 'Monster Turn'}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-200px)]">
@@ -320,6 +355,7 @@ const Combat: React.FC = () => {
                       variant="danger"
                       size="lg"
                       className="w-full flex items-center justify-center"
+                      disabled={!isPlayerTurn || isProcessingAction}
                     >
                       <Sword className="w-5 h-5 mr-2" />
                       BATTLE
@@ -330,6 +366,7 @@ const Combat: React.FC = () => {
                       variant="secondary"
                       size="lg"
                       className="w-full flex items-center justify-center"
+                      disabled={!isPlayerTurn || isProcessingAction}
                     >
                       <Package className="w-5 h-5 mr-2" />
                       BAG
@@ -340,6 +377,7 @@ const Combat: React.FC = () => {
                       variant="secondary"
                       size="lg"
                       className="w-full flex items-center justify-center"
+                      disabled={!isPlayerTurn || isProcessingAction}
                     >
                       <ArrowLeft className="w-5 h-5 mr-2" />
                       RUN
@@ -352,7 +390,12 @@ const Combat: React.FC = () => {
                         <Button
                           key={skill.id}
                           onClick={() => handleSkillUse(skill)}
-                          disabled={playerMP < skill.mana_cost}
+                          disabled={
+                            playerMP < skill.mana_cost || 
+                            !isPlayerTurn || 
+                            isProcessingAction ||
+                            isBattleOver
+                          }
                           variant="primary"
                           size="sm"
                           className="p-3 text-xs"
@@ -377,6 +420,7 @@ const Combat: React.FC = () => {
                       variant="secondary"
                       size="lg"
                       className="w-full flex items-center justify-center"
+                      disabled={!isPlayerTurn || isProcessingAction}
                     >
                       <RotateCcw className="w-5 h-5 mr-2" />
                       Back

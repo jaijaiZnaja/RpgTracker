@@ -171,7 +171,7 @@ export const CombatProvider: React.FC<CombatProviderProps> = ({ children }) => {
       }
 
       // Get new vitals for the level
-      const newVitals = getLevelVitals(newLevel);
+      const newVitals = getLevelVitals(newLevel, user.character.class);
 
       // Update user character
       updateUser({
@@ -201,45 +201,53 @@ export const CombatProvider: React.FC<CombatProviderProps> = ({ children }) => {
       return;
     }
 
-    // Monster turn
+    // Switch to monster turn
     newState.turn = 'monster';
-    const monsterDamage = Math.max(1, newState.monster.attack - newState.player.defense);
-    newState.player.hp = Math.max(0, newState.player.hp - monsterDamage);
-    newState.battleLog.push(`${newState.monster.name} attacks for ${monsterDamage} damage!`);
-
-    // Check if player is defeated
-    if (newState.player.hp <= 0) {
-      newState.isActive = false;
-      newState.result = 'defeat';
-      newState.battleLog.push('You have been defeated!');
-      
-      // Update user HP
-      updateUser({
-        character: {
-          ...user.character,
-          vitals: {
-            ...user.character.vitals,
-            currentHP: 1, // Leave player with 1 HP
-          },
-        },
-      });
-    } else {
-      // Update user HP
-      updateUser({
-        character: {
-          ...user.character,
-          vitals: {
-            ...user.character.vitals,
-            currentHP: newState.player.hp,
-            currentMP: newState.player.mp,
-          },
-        },
-      });
-    }
-
-    // Back to player turn
-    newState.turn = 'player';
     setCombatState(newState);
+
+    // Monster turn after a delay
+    setTimeout(() => {
+      if (!newState.isActive) return;
+
+      const monsterDamage = Math.max(1, newState.monster.attack - newState.player.defense);
+      newState.player.hp = Math.max(0, newState.player.hp - monsterDamage);
+      newState.battleLog.push(`${newState.monster.name} attacks for ${monsterDamage} damage!`);
+
+      // Check if player is defeated
+      if (newState.player.hp <= 0) {
+        newState.isActive = false;
+        newState.result = 'defeat';
+        newState.battleLog.push('You have been defeated!');
+        
+        // Update user HP
+        updateUser({
+          character: {
+            ...user.character,
+            vitals: {
+              ...user.character.vitals,
+              currentHP: 1, // Leave player with 1 HP
+            },
+          },
+        });
+      } else {
+        // Update user HP/MP
+        updateUser({
+          character: {
+            ...user.character,
+            vitals: {
+              ...user.character.vitals,
+              currentHP: newState.player.hp,
+              currentMP: newState.player.mp,
+            },
+          },
+        });
+      }
+
+      // Back to player turn
+      newState.turn = 'player';
+      setCombatState({ ...newState });
+    }, 1500); // 1.5 second delay for monster turn
+
   }, [combatState, user, availableSkills, updateUser]);
 
   const endCombat = useCallback(() => {

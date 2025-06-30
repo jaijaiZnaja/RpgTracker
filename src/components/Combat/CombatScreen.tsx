@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sword, Zap, Package, ArrowLeft, Heart, Sparkles } from 'lucide-react';
+import { Sword, Zap, Package, ArrowLeft, Heart, Sparkles, Trophy } from 'lucide-react';
 import { useCombat } from '../../contexts/CombatContext';
 import Button from '../UI/Button';
 import Card from '../UI/Card';
@@ -13,12 +13,18 @@ const CombatScreen: React.FC = () => {
   const { player, monster, battleLog, isActive, result, turn } = combatState;
 
   const handleAction = async (type: 'attack' | 'skill' | 'flee', skillId?: string) => {
+    // Prevent action if it's not player's turn or combat is not active
+    if (!isActive || turn !== 'player') return;
+    
     await performAction({ type, skillId });
   };
 
   const handleEndCombat = () => {
     endCombat();
   };
+
+  // Check if player can act (it's their turn and combat is active)
+  const canPlayerAct = isActive && turn === 'player';
 
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-primary-900 via-mystical-900 to-primary-800 z-50 flex items-center justify-center p-4">
@@ -94,6 +100,19 @@ const CombatScreen: React.FC = () => {
           </div>
         </Card>
 
+        {/* Turn Indicator */}
+        {isActive && (
+          <Card className="p-4 text-center">
+            <div className={`inline-block px-4 py-2 rounded-lg font-bold ${
+              turn === 'player' 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-yellow-100 text-yellow-800'
+            }`}>
+              {turn === 'player' ? 'Your Turn' : 'Monster\'s Turn'}
+            </div>
+          </Card>
+        )}
+
         {/* Battle Log */}
         <Card className="p-4">
           <h4 className="font-semibold text-gray-800 mb-3">Battle Log</h4>
@@ -107,7 +126,7 @@ const CombatScreen: React.FC = () => {
         </Card>
 
         {/* Action Buttons */}
-        {isActive && turn === 'player' ? (
+        {canPlayerAct ? (
           <Card className="p-6">
             <h4 className="font-semibold text-gray-800 mb-4">Choose your action:</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -115,6 +134,7 @@ const CombatScreen: React.FC = () => {
                 onClick={() => handleAction('attack')}
                 variant="danger"
                 className="flex flex-col items-center p-4 h-auto"
+                disabled={!canPlayerAct}
               >
                 <Sword className="w-6 h-6 mb-2" />
                 <span>Attack</span>
@@ -130,7 +150,7 @@ const CombatScreen: React.FC = () => {
                     }
                   }}
                   variant="mystical"
-                  disabled={!player.skills.length || player.mp < (player.skills[0]?.mana_cost || 0)}
+                  disabled={!canPlayerAct || !player.skills.length || player.mp < (player.skills[0]?.mana_cost || 0)}
                   className="flex flex-col items-center p-4 h-auto w-full"
                 >
                   <Zap className="w-6 h-6 mb-2" />
@@ -157,6 +177,7 @@ const CombatScreen: React.FC = () => {
                 onClick={() => handleAction('flee')}
                 variant="secondary"
                 className="flex flex-col items-center p-4 h-auto"
+                disabled={!canPlayerAct}
               >
                 <ArrowLeft className="w-6 h-6 mb-2" />
                 <span>Flee</span>
@@ -172,7 +193,7 @@ const CombatScreen: React.FC = () => {
                     <Button
                       key={skill.id}
                       onClick={() => handleAction('skill', skill.id)}
-                      disabled={player.mp < skill.mana_cost}
+                      disabled={!canPlayerAct || player.mp < skill.mana_cost}
                       variant="primary"
                       size="sm"
                       className="flex items-center justify-between p-3"
@@ -190,10 +211,11 @@ const CombatScreen: React.FC = () => {
               </div>
             )}
           </Card>
-        ) : turn === 'monster' ? (
+        ) : turn === 'monster' && isActive ? (
           <Card className="p-6 text-center">
             <div className="animate-pulse">
               <h4 className="font-semibold text-gray-800">Monster's turn...</h4>
+              <p className="text-gray-600 mt-2">Please wait while the monster attacks</p>
             </div>
           </Card>
         ) : null}
