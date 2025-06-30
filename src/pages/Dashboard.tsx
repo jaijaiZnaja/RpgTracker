@@ -5,7 +5,7 @@ import CharacterPortrait from '../components/Character/CharacterPortrait';
 import QuestCard from '../components/Quest/QuestCard';
 import ProgressBar from '../components/UI/ProgressBar';
 import Card from '../components/UI/Card';
-import { Calendar, Trophy, Coins, Zap } from 'lucide-react';
+import { Calendar, Trophy, Coins, Zap, Star } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -22,6 +22,9 @@ const Dashboard: React.FC = () => {
     return today === completedDate;
   });
 
+  // Check if player just reached level 3 and show class change notification
+  const showClassChangeNotification = user.character.level >= 3 && user.character.class !== 'Novice';
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -34,10 +37,33 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Class Change Notification */}
+      {showClassChangeNotification && (
+        <Card className="p-6 bg-gradient-to-r from-gold-50 to-gold-100 border-2 border-gold-400">
+          <div className="flex items-center space-x-4">
+            <div className="w-16 h-16 bg-gold-500 rounded-full flex items-center justify-center">
+              <Star className="w-8 h-8 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-gold-800 mb-2">🎉 Class Evolution!</h3>
+              <p className="text-gold-700">
+                Congratulations! You've reached level 3 and evolved into a <strong>{user.character.class}</strong>!
+                Your stats have determined your specialization, and you've unlocked new class-specific skills.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Character Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <Card className="lg:col-span-1 p-6">
-          <CharacterPortrait character={user.character} size="lg" showStats />
+          <CharacterPortrait 
+            character={user.character} 
+            size="lg" 
+            showStats 
+            showClassInfo={user.character.class !== 'Novice'}
+          />
         </Card>
 
         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">

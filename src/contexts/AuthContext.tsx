@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
-import { User, Character, getLevelVitals } from '../types';
+import { supabase, combatAPI } from '../lib/supabase';
+import { User, Character, getLevelVitals, determineClass, getClassBonuses } from '../types';
 
 interface AuthContextType {
   user: User | null;
@@ -179,13 +179,66 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
   };
 
+  // Auto-unlock class skills when class changes
+  const unlockClassSkills = async (userId: string, newClass: string) => {
+    try {
+      // Get all skills for the new class
+      const classSkills = await combatAPI.getSkillsByClass(newClass);
+      
+      // Unlock each skill for the player
+      for (const skill of classSkills) {
+        try {
+          // Check if skill is already unlocked
+          const isUnlocked = await combatAPI.isSkillUnlockedForPlayer(userId, skill.id);
+          if (!isUnlocked) {
+            await combatAPI.unlockSkillForPlayer(userId, skill.id);
+            console.log(`Unlocked skill: ${skill.name} for class: ${newClass}`);
+          }
+        } catch (error) {
+          // Ignore duplicate key errors (skill already unlocked)
+          if (!error.message?.includes('duplicate key')) {
+            console.error(`Failed to unlock skill ${skill.name}:`, error);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to unlock class skills:', error);
+    }
+  };
+
   const updateUser = async (userData: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...userData };
       
+      // Check for class change at level 3
+      if (userData.character?.level && userData.character.level >= 3) {
+        const currentClass = updatedUser.character.class;
+        const newClass = determineClass(updatedUser.character.stats);
+        
+        // If class should change and it's different from current
+        if (newClass !== currentClass && currentClass === 'Novice') {
+          console.log(`Class change detected: ${currentClass} -> ${newClass}`);
+          updatedUser.character.class = newClass;
+          
+          // Unlock class-specific skills
+          await unlockClassSkills(user.id, newClass);
+          
+          // Apply class bonuses to vitals
+          const newVitals = getLevelVitals(updatedUser.character.level, newClass);
+          updatedUser.character.vitals = {
+            ...updatedUser.character.vitals,
+            maxHP: newVitals.maxHP,
+            maxMP: newVitals.maxMP,
+            // Restore HP/MP to full when class changes
+            currentHP: newVitals.maxHP,
+            currentMP: newVitals.maxMP,
+          };
+        }
+      }
+      
       // If character level changed, update vitals accordingly
       if (userData.character?.level && userData.character.level !== user.character.level) {
-        const newVitals = getLevelVitals(userData.character.level);
+        const newVitals = getLevelVitals(userData.character.level, updatedUser.character.class);
         updatedUser.character = {
           ...updatedUser.character,
           vitals: {

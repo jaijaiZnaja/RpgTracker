@@ -42,9 +42,69 @@ export interface CharacterVitals {
 
 export type CharacterClass = 'Novice' | 'Fighter' | 'Ranger' | 'Wizard' | 'Adventurer';
 
-// Level-based vitals calculation
-export const getLevelVitals = (level: number): { maxHP: number; maxMP: number } => {
-  const vitalsTable: Record<number, { maxHP: number; maxMP: number }> = {
+// Class determination logic
+export const determineClass = (stats: CharacterStats): CharacterClass => {
+  const { strength, dexterity, intelligence } = stats;
+  
+  // Find the highest stat
+  const maxStat = Math.max(strength, dexterity, intelligence);
+  
+  // If there's a tie, prioritize in order: Strength > Dexterity > Intelligence
+  if (strength === maxStat) {
+    return 'Fighter';
+  } else if (dexterity === maxStat) {
+    return 'Ranger';
+  } else {
+    return 'Wizard';
+  }
+};
+
+// Class-specific bonuses and effects
+export const getClassBonuses = (characterClass: CharacterClass, level: number) => {
+  const bonuses = {
+    Fighter: {
+      hpBonus: level * 10, // +10 HP per level
+      mpBonus: 0,
+      attackBonus: level * 2, // +2 attack per level
+      defenseBonus: level * 1, // +1 defense per level
+      description: 'Masters of melee combat with high HP and attack power'
+    },
+    Ranger: {
+      hpBonus: level * 5, // +5 HP per level
+      mpBonus: level * 5, // +5 MP per level
+      attackBonus: level * 1.5, // +1.5 attack per level
+      defenseBonus: level * 2, // +2 defense per level (agility-based)
+      description: 'Balanced warriors with good defense and versatility'
+    },
+    Wizard: {
+      hpBonus: 0,
+      mpBonus: level * 15, // +15 MP per level
+      attackBonus: level * 1, // +1 attack per level
+      defenseBonus: level * 0.5, // +0.5 defense per level
+      description: 'Masters of magic with high MP and spell power'
+    },
+    Novice: {
+      hpBonus: 0,
+      mpBonus: 0,
+      attackBonus: 0,
+      defenseBonus: 0,
+      description: 'A beginning adventurer with no specialization'
+    },
+    Adventurer: {
+      hpBonus: level * 7, // Balanced bonuses
+      mpBonus: level * 7,
+      attackBonus: level * 1.5,
+      defenseBonus: level * 1.5,
+      description: 'A versatile adventurer with balanced abilities'
+    }
+  };
+
+  return bonuses[characterClass] || bonuses.Novice;
+};
+
+// Level-based vitals calculation with class bonuses
+export const getLevelVitals = (level: number, characterClass: CharacterClass = 'Novice'): { maxHP: number; maxMP: number } => {
+  const baseVitals = {
     1: { maxHP: 100, maxMP: 50 },
     2: { maxHP: 125, maxMP: 75 },
     3: { maxHP: 150, maxMP: 100 },
@@ -55,23 +115,31 @@ export const getLevelVitals = (level: number): { maxHP: number; maxMP: number } 
     8: { maxHP: 275, maxMP: 225 },
     9: { maxHP: 300, maxMP: 250 },
     10: { maxHP: 325, maxMP: 275 },
-    // Continue pattern: +25 HP, +25 MP per level
   };
 
-  // If level is not in table, calculate using pattern
-  if (vitalsTable[level]) {
-    return vitalsTable[level];
+  // Get base vitals
+  let baseHP, baseMP;
+  if (baseVitals[level as keyof typeof baseVitals]) {
+    const vitals = baseVitals[level as keyof typeof baseVitals];
+    baseHP = vitals.maxHP;
+    baseMP = vitals.maxMP;
+  } else {
+    // For levels beyond the table
+    const baseHPStart = 100;
+    const baseMPStart = 50;
+    const hpIncrement = 25;
+    const mpIncrement = 25;
+    
+    baseHP = baseHPStart + (level - 1) * hpIncrement;
+    baseMP = baseMPStart + (level - 1) * mpIncrement;
   }
 
-  // For levels beyond the table, use the pattern: base + (level-1) * increment
-  const baseHP = 100;
-  const baseMana = 50;
-  const hpIncrement = 25;
-  const manaIncrement = 25;
-
+  // Apply class bonuses
+  const classBonuses = getClassBonuses(characterClass, level);
+  
   return {
-    maxHP: baseHP + (level - 1) * hpIncrement,
-    maxMP: baseMana + (level - 1) * manaIncrement,
+    maxHP: baseHP + classBonuses.hpBonus,
+    maxMP: baseMP + classBonuses.mpBonus,
   };
 };
 
