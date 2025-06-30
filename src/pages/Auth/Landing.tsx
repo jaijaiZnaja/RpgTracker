@@ -21,7 +21,7 @@ const Landing: React.FC = () => {
           <img 
             src="/bolt-logo.png" 
             alt="Powered by Bolt" 
-            className="w-14 h-14"
+            className="w-32 h-32"
           />
         </a>
 
