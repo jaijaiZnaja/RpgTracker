@@ -8,6 +8,22 @@ const Landing: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-primary-900 via-mystical-900 to-primary-800">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
+        
+        {/* Bolt Image Link */}
+        <a 
+          href="https://bolt.new/" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="absolute top-4 right-4 z-10 transition-transform duration-300 hover:scale-110"
+          aria-label="Powered by Bolt"
+        >
+          <img 
+            src="https://boltnpm.com/made-in-bolt.png" 
+            alt="Powered by Bolt" 
+            className="w-14 h-14"
+          />
+        </a>
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center">
             <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
