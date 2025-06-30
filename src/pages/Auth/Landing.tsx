@@ -18,7 +18,7 @@ const Landing: React.FC = () => {
           aria-label="Powered by Bolt"
         >
           <img 
-            src="https://boltnpm.com/made-in-bolt.png" 
+            src="https://assets.bolt.com/made-in-bolt.png" 
             alt="Powered by Bolt" 
             className="w-14 h-14"
           />
